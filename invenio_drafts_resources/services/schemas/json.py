@@ -9,6 +9,7 @@
 """Marshmallow JSON schema."""
 
 
+from invenio_records_resources.schemas.fields import SanitizedUnicode
 from marshmallow import INCLUDE, Schema, fields
 
 
@@ -26,10 +27,11 @@ class DraftMetadataSchemaJSONV1(Schema):
 class DraftSchemaJSONV1(Schema):
     """Schema for drafts v1 in JSON."""
 
-    # TODO: Remove this comment
-    # attribute="pid.pid_value" is not needed anymore since it is always `id`
-    # PID resolving happends only at controller level.
     id = fields.String(attribute="pid.pid_value")
+    conceptrecid = SanitizedUnicode(
+        attribute='metadata.conceptrecid',
+        dump_only=True
+    )
     metadata = fields.Nested(DraftMetadataSchemaJSONV1)
     links = fields.Raw()
     created = fields.Str()

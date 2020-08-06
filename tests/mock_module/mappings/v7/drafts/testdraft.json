@@ -3,6 +3,12 @@
     "properties": {
       "title": {
         "type": "text"
+      },
+      "conceptrecid": {
+        "type": "keyword"
+      },
+      "recid": {
+        "type": "keyword"
       }
     }
   }

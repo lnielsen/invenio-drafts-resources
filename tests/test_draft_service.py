@@ -26,6 +26,10 @@ def test_create_draft_of_new_record(app, draft_service, input_draft,
     for key, value in input_draft.items():
         assert identified_draft.record[key] == value
 
+    # Check for pid and parent pid
+    assert identified_draft.record['recid']
+    assert identified_draft.record['conceptrecid']
+
 
 def test_create_draft_of_existing_record(app, draft_service, record_service,
                                          input_record, fake_identity):
@@ -75,7 +79,7 @@ def test_publish_draft_of_new_record(app, draft_service, input_record,
     )
     assert identified_draft.id
     for pid in identified_draft.pids:
-        assert pid.status == PIDStatus.NEW
+        assert pid.status == PIDStatus.RESERVED
 
     for key, value in input_record.items():
         assert identified_draft.record[key] == value
@@ -110,3 +114,59 @@ def test_publish_draft_of_new_record(app, draft_service, input_record,
 
     for key, value in input_record.items():
         assert identified_record.record[key] == value
+
+
+def test_create_new_version_of_record(app, draft_service, input_record,
+                                     fake_identity):
+    """Creates a new version of a record.
+
+    Publishes the draft to obtain 2 versions of a record.
+    """
+    # Needs `app` context because of invenio_access/permissions.py#166
+    # Cannot create with record service due to the lack of versioning
+    # Crate the draft
+    identified_draft_1 = draft_service.create(
+        data=input_record, identity=fake_identity
+    )
+    assert identified_draft_1.id
+    for pid in identified_draft_1.pids:
+        assert pid.status == PIDStatus.RESERVED
+
+    assert identified_draft_1.record.revision_id == 0
+
+    # Publish it
+    identified_record_1 = draft_service.publish(
+        id_=identified_draft_1.id, identity=fake_identity
+    )
+
+    assert identified_record_1.id
+    for pid in identified_record_1.pids:
+        assert pid.status == PIDStatus.REGISTERED
+
+    assert identified_record_1.record.revision_id == 0
+
+    # Create new version
+    identified_draft_2 = draft_service.version(
+        id_=identified_record_1.id, identity=fake_identity
+    )
+
+    import ipdb; ipdb.set_trace(context=10)
+    assert identified_draft_2.id != identified_record_1.id
+    for pid in identified_draft_2.pids:
+        assert pid.status == PIDStatus.RESERVED
+
+    assert identified_draft_2.record.revision_id == 0
+
+    # Publish it
+    identified_record_2 = draft_service.publish(
+        id_=identified_draft_2.id, identity=fake_identity
+    )
+
+    assert identified_record_2.id
+    for pid in identified_record_2.pids:
+        assert pid.status == PIDStatus.REGISTERED
+
+    assert identified_record_2.record.revision_id == 0
+
+    assert identified_record_1.record['conceptpid'] == \
+        identified_record_2.record['conceptpid']

@@ -28,7 +28,7 @@ from invenio_search import RecordsSearch
 
 from invenio_drafts_resources.drafts import DraftBase, DraftMetadataBase
 from invenio_drafts_resources.resources import DraftActionResource, \
-    DraftResource
+    DraftResource, DraftVersionResource
 from invenio_drafts_resources.services import RecordDraftService, \
     RecordDraftServiceConfig
 
@@ -152,10 +152,14 @@ def app(app):
         draft_action_bp = DraftActionResource(
             service=_draft_service()
         ).as_blueprint("draft_action_resource")
+        draft_version_bp = DraftVersionResource(
+            service=_draft_service()
+        ).as_blueprint("draft_version_resource")
 
         app.register_blueprint(record_bp)
         app.register_blueprint(draft_bp)
         app.register_blueprint(draft_action_bp)
+        app.register_blueprint(draft_version_bp)
         yield app
 
 

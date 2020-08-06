@@ -13,12 +13,12 @@
 import uuid
 
 from invenio_db import db
-from invenio_pidstore.models import PIDStatus
-from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
+from invenio_pidstore.models import PersistentIdentifier
 from invenio_records_resources.services import MarshmallowDataValidator, \
     RecordService, RecordServiceConfig
 
 from ..resource_units import IdentifiedRecordDraft
+from .minter import versioned_recid_minter_v2
 from .permissions import DraftPermissionPolicy
 from .schemas import DraftMetadataSchemaJSONV1
 from .search import draft_record_to_index
@@ -43,12 +43,14 @@ class RecordDraftServiceConfig(RecordServiceConfig):
 
 
 class RecordDraftService(RecordService):
-    """Draft Service interface."""
+    """Draft Service interface.
 
-    RecordIdProviderV2.default_status_with_obj = PIDStatus.NEW
+    This service includes verioning.
+    """
+
     default_config = RecordDraftServiceConfig
 
-    # Over write resolver because default status is a class attr
+    # Overwrite resolver because default status is a class attr
     @property
     def resolver(self):
         """Factory for creating a draft resolver instance."""
@@ -57,6 +59,12 @@ class RecordDraftService(RecordService):
             getter=self.record_cls.get_record,
             registered_only=False
         )
+
+    # Overwrite minter to use versioning
+    @property
+    def minter(self):
+        """Returns the minter function."""
+        return versioned_recid_minter_v2
 
     @property
     def indexer(self):
@@ -88,6 +96,15 @@ class RecordDraftService(RecordService):
     def resolve_draft(self, id_):
         """Resolve a persistent identifier to a record draft."""
         return self.draft_resolver.resolve(id_)
+
+    # FIXME: This should be moved to the PID wrapper when it is done.
+    def _register_concept(self, id_):
+        """Register the conceptrecid."""
+        concept_pid = PersistentIdentifier.get(
+            pid_type=self.config.resolver_pid_type,
+            pid_value=id_
+        )
+        concept_pid.register()
 
     # High-level API
     # Inherits record read, search, create, delete and update
@@ -143,6 +160,7 @@ class RecordDraftService(RecordService):
         validated_data = self.data_validator.validate(data)
         # Use same UUID
         record = self.record_cls.create(validated_data, id_=draft.id)
+        self._register_concept(record['conceptrecid'])
         pid.register()
         # Remove draft
         draft.delete()
@@ -153,3 +171,27 @@ class RecordDraftService(RecordService):
             self.indexer.index(record)
 
         return self.resource_unit(pid=pid, record=record)
+
+    def version(self, id_, identity):
+        """Create a new version of a record."""
+        self.require_permission(identity, "create")
+        # Get draft
+        pid, record = self.resolve(id_=id_)
+        # Validate and create a draft, register PID
+        data = record.dumps()
+        # Validate against record schema
+        validated_data = self.draft_data_validator.validate(data)
+        # Create new record (relation done by minter)
+        rec_uuid = uuid.uuid4()
+        pid = self.minter(record_uuid=rec_uuid, data=validated_data)
+        draft = self.draft_cls.create(
+            data=validated_data,
+            id_=rec_uuid
+        )
+        # Remove draft
+        db.session.commit()  # Persist DB
+        # Index the record
+        if self.indexer:
+            self.indexer.index(draft)
+
+        return self.resource_unit(pid=pid, record=draft)

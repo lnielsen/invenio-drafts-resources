@@ -92,8 +92,10 @@ class DraftVersionResource(CollectionResource):
 
     def create(self, *args, **kwargs):
         """Create an item."""
-        # TODO: IMPLEMENT ME!
-        return self.service.create()
+        identity = g.identity
+        id_ = resource_requestctx.route["pid_value"]
+
+        return self.service.version(id_, identity), 201
 
 
 class DraftActionResourceConfig(ResourceConfig):
