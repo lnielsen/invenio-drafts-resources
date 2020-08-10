@@ -16,6 +16,8 @@ from flask_resources.resources import ResourceConfig
 STUB_ITEM_RESULT = ({"TODO": "IMPLEMENT ME"}, 200)
 STUB_LIST_RESULT = ([{"TODO": "IMPLEMENT ME"}], 200)
 
+# TODO: Confusing for me to talk about deposit here. Frontend side you can
+# perhaps call the proces for deposit instead of upload, but
 
 # Proposal: "Deposits" is the term to talk about entities that are either
 #           draft or published records

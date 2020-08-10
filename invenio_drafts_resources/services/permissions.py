@@ -12,6 +12,7 @@
 from invenio_records_permissions.generators import AnyUser
 from invenio_records_permissions.policies.records import RecordPermissionPolicy
 
+# TODO: Do we need two permission policies?
 
 class DraftPermissionPolicy(RecordPermissionPolicy):
     """Custom permission policy."""

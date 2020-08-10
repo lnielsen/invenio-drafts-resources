@@ -17,6 +17,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy_utils.types import JSONType, UUIDType
 
 
+# TODO: Why not inherit from RecordsMetadatBase
 class DraftMetadataBase(Timestamp):
     """Represent a base class for draft metadata.
 
@@ -24,6 +25,7 @@ class DraftMetadataBase(Timestamp):
     properties that are automatically updated.
     """
 
+    # TODO: Versioning should not be enabled
     # Enables SQLAlchemy-Continuum versioning
     __versioned__ = {}
 

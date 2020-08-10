@@ -50,6 +50,7 @@ class DraftResource(SingletonResource):
 
         return self.service.read_draft(id_, identity), 200
 
+    # TODO: I think either we take eg. id as arg, or we use requestctx? re. pid_value
     def create(self, *args, **kwargs):
         """Create an item."""
         data = resource_requestctx.request_content
@@ -124,5 +125,6 @@ class DraftActionResource(SingletonResource):
         if resource_requestctx.route["action"] == "publish":
             identity = g.identity
             id_ = resource_requestctx.route["pid_value"]
+            # TODO: Return code could be 200 or 202.
             return self.service.publish(id_, identity), 200
         return {}, 200

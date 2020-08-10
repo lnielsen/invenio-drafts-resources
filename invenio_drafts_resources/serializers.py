@@ -15,6 +15,8 @@ from flask_resources.serializers import SerializerMixin
 from invenio_records_resources.serializers import RecordJSONSerializer
 
 
+# TODO: Ideally we should have just one serializer, that's able to serialize
+# both drafts and records.
 class DraftJSONSerializer(RecordJSONSerializer):
     """Drafts JSON serializer implementation."""
 
@@ -28,6 +30,7 @@ class DraftJSONSerializer(RecordJSONSerializer):
         draft_dict = dict(
             pid=pid,
             metadata=draft.dumps(),
+            # TODO: since we delete old drafts, do we then also reuse old version numbers? potentially this could lead to conflicts.
             revision=draft.revision_id,
             status=draft.status,
             created=(
@@ -40,6 +43,7 @@ class DraftJSONSerializer(RecordJSONSerializer):
                 if draft.updated and not draft.updated.tzinfo
                 else None
             ),
+            # expiry -> expires or expires_at
             expiry=(
                 pytz.utc.localize(draft.expiry_date).isoformat()
                 if draft.expiry_date and not draft.expiry_date.tzinfo
@@ -54,6 +58,7 @@ class DraftJSONSerializer(RecordJSONSerializer):
 
     def serialize_object(self, obj, response_ctx=None, *args, **kwargs):
         """Dump the object into a json string."""
+        # TODO: should not be needed - but I think we discussed.
         if obj:  # e.g. delete op has no return body
             return json.dumps(self._process_draft(obj))
         else:
@@ -66,4 +71,5 @@ class DraftJSONSerializer(RecordJSONSerializer):
 
         Drafts are only serialized and returned back as individual objects.
         """
+        # TOOD: What about search results over drafts?
         raise NotImplementedError()

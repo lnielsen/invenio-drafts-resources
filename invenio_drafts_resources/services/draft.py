@@ -34,12 +34,27 @@ class RecordDraftServiceConfig(RecordServiceConfig):
     resource_unit_cls = IdentifiedRecordDraft
 
     # DraftService configuration.
+    # TODO: This one I'd like to understand better.
     record_to_index = draft_record_to_index
     # WHY: We want to force user input choice here.
     draft_cls = None
+    # TODO: Why another validator?  this will lead to two Marshmallow schemas
     draft_data_validator = MarshmallowDataValidator(
         schema=DraftMetadataSchemaJSONV1
     )
+
+    create_actions = [
+        CreateBucketCmd,
+    ]
+
+    publish_actions = [
+        CommunityInclusionRequestCmd,
+        SIPPackageCreation
+    ]
+
+    post_publish_actions = [
+        RegisterDOIAction,
+    ]
 
 
 class RecordDraftService(RecordService):
@@ -151,6 +166,8 @@ class RecordDraftService(RecordService):
 
     def publish(self, id_, identity):
         """Publish a draft."""
+        # TODO: should take the record into account?
+        # TODO: oauth 2 scopes
         self.require_permission(identity, "publish")
         # Get draft
         pid, draft = self.resolve_draft(id_=id_)
@@ -167,11 +184,14 @@ class RecordDraftService(RecordService):
         db.session.commit()  # Persist DB
         # Index the record
         if self.indexer:
+            # TODO: How is indexing done? Here it seems that it's the same index,
+            # and only either a record or draft can exists? this won't work
             self.indexer.delete(draft)
             self.indexer.index(record)
 
         return self.resource_unit(pid=pid, record=record)
 
+    # TOOD: version -> newversion
     def version(self, id_, identity):
         """Create a new version of a record."""
         self.require_permission(identity, "create")
@@ -187,7 +207,14 @@ class RecordDraftService(RecordService):
         draft = self.draft_cls.create(
             data=validated_data,
             id_=rec_uuid
+
         )
+
+        PIDVersioning
+        RecordDraft.link()
+
+        self.config.publish_actions
+
         # Remove draft
         db.session.commit()  # Persist DB
         # Index the record

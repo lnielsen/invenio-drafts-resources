@@ -9,6 +9,8 @@
 
 """Invenio-Drafts-Resources Configuration."""
 
+# TODO: Why is this in config? A user might need to set it for a specific data
+# model, but in general?
 DRAFTS_RESOURCES_LINK_URLS = {
     'record': '{base}/records/{pid}',
     'records': '{base}/records/',

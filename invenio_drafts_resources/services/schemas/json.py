@@ -12,6 +12,7 @@
 from invenio_records_resources.schemas.fields import SanitizedUnicode
 from marshmallow import INCLUDE, Schema, fields
 
+# TODO: What are we using this schema for?
 
 class DraftMetadataSchemaJSONV1(Schema):
     """Basic metadata schema class."""

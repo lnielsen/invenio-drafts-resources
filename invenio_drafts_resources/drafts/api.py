@@ -18,6 +18,8 @@ class DraftBase(Record):
     # WHY: We want to force the model_cls to be specified by the user
     # No default one is given, only the base.
     model_cls = None
+
+    # TODO: What do we use status for?
     default_status = 'draft'
 
     @property
