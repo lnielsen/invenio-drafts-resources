@@ -10,9 +10,9 @@
 
 """Search/Indexer module."""
 
-from invenio_records.api import RecordBase
+from invenio_records_resources.records import Record
 
-from ..drafts import DraftBase
+from ...records import Draft
 
 
 def draft_record_to_index(record):
@@ -22,9 +22,9 @@ def draft_record_to_index(record):
           unsupported.
     TODO: Use $schema to fill index per issue #27
     """
-    if isinstance(record, DraftBase):
+    if isinstance(record, Draft):
         return 'drafts', "_doc"
-    if isinstance(record, RecordBase):
+    if isinstance(record, Record):
         return 'records', "_doc"
     else:
         return None, None

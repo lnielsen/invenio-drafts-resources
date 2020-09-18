@@ -15,9 +15,12 @@ from invenio_records_resources.services.records.components import \
 class RelationsComponent(ServiceComponent):
     """Service component for PID relations integration."""
 
+    # PIDNodeVersioning(pid=conceptrecid).insert_draft_child(child_pid=recid)
+
 
 class DraftMetadataComponent(MetadataComponent):
     """Service component for draft metadata integration."""
 
     def update_draft(self, *args, **kwargs):
+        """Update draft metadata."""
         self.update(*args, **kwargs)

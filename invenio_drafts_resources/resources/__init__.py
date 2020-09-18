@@ -9,25 +9,25 @@
 
 """Invenio Drafts Resources module to create REST APIs."""
 
-from .deposit import DepositResource, DepositResourceConfig
-from .draft import DraftActionResource, DraftActionResourceConfig, \
-    DraftResource, DraftResourceConfig, DraftVersionResource, \
-    DraftVersionResourceConfig
-from .draft_file import DraftFileActionResource, \
-    DraftFileActionResourceConfig, DraftFileResource, \
-    DraftFileResourceConfig
+# from .deposit import DepositResource, DepositResourceConfig
+# from .draft import DraftActionResource, DraftResource, DraftVersionResource
+# from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
+#     DraftVersionResourceConfig
+# from .file import DraftFileActionResource, DraftFileResource
+# from .file_config import DraftFileActionResourceConfig, \
+#     DraftFileResourceConfig
 
-__all__ = (
-    "DepositResource",
-    "DepositResourceConfig",
-    "DraftResource",
-    "DraftResourceConfig",
-    "DraftActionResource",
-    "DraftActionResourceConfig",
-    "DraftVersionResource",
-    "DrafVersiontResourceConfig",
-    "DraftFileActionResourceConfig",
-    "DraftFileActionResource",
-    "DraftFileResourceConfig",
-    "DraftFileResource",
-)
+# __all__ = (
+#     "DepositResource",
+#     "DepositResourceConfig",
+#     "DraftResource",
+#     "DraftResourceConfig",
+#     "DraftActionResource",
+#     "DraftActionResourceConfig",
+#     "DraftVersionResource",
+#     "DrafVersiontResourceConfig",
+#     "DraftFileActionResourceConfig",
+#     "DraftFileActionResource",
+#     "DraftFileResourceConfig",
+#     "DraftFileResource",
+# )

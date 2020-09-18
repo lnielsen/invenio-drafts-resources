@@ -14,7 +14,7 @@ from flask_resources.context import resource_requestctx
 # TODO: expose correctly in flask-resources
 from flask_resources.resources import ResourceConfig
 
-from ..services import DraftFileMetadataService, DraftFileService
+from ..services import FileMetadataService, FileService
 
 
 class DraftFileResourceConfig(ResourceConfig):
@@ -32,7 +32,7 @@ class DraftFileResource(CollectionResource):
     def __init__(self, service=None, *args, **kwargs):
         """Constructor."""
         super(DraftFileResource, self).__init__(*args, **kwargs)
-        self.service = service or DraftFileMetadataService()
+        self.service = service or FileMetadataService()
 
     # List level
     def search(self, *args, **kwargs):
@@ -91,7 +91,7 @@ class DraftFileActionResource(SingletonResource):
     def __init__(self, service=None, *args, **kwargs):
         """Constructor."""
         super(DraftFileResource, self).__init__(*args, **kwargs)
-        self.service = service or DraftFileService()
+        self.service = service or FileService()
 
     def read(self, *args, **kwargs):
         """Read an item."""

@@ -8,13 +8,11 @@
 
 """Draft Models API."""
 
-import uuid
 from datetime import datetime
 
 from invenio_db import db
 from invenio_records.models import RecordMetadataBase
-from sqlalchemy.dialects import mysql, postgresql
-from sqlalchemy_utils.types import JSONType, UUIDType
+from sqlalchemy.dialects import mysql
 
 
 class DraftMetadataBase(RecordMetadataBase):

@@ -12,6 +12,7 @@
 from flask import g
 from flask_resources import CollectionResource, SingletonResource
 from flask_resources.context import resource_requestctx
+from invenio_records_resources.config import ConfigLoaderMixin
 
 from ..errors import ActionNotConfigured, CommandNotImplemented
 from ..services import RecordDraftService
@@ -19,44 +20,66 @@ from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
     DraftVersionResourceConfig
 
 
-class DraftResource(SingletonResource):
+class DraftResource(SingletonResource, ConfigLoaderMixin):
     """Draft resource."""
 
     default_config = DraftResourceConfig
 
-    def __init__(self, service=None, *args, **kwargs):
+    def __init__(self, config=None, service=None):
         """Constructor."""
-        super(DraftResource, self).__init__(*args, **kwargs)
+        super().__init__(config=self.load_config(config))
         self.service = service or RecordDraftService()
 
     def read(self):
-        """Read an item."""
-        identity = g.identity
-        id_ = resource_requestctx.route["pid_value"]
+        """Edit a draft.
 
-        return self.service.read_draft(identity, id_), 200
+        GET /records/:pid_value/draft
+        """
+        item = self.service.read_draft(
+            resource_requestctx.route["pid_value"],
+            g.identity,
+            links_config=self.config.links_config,
+        )
+        return item.to_dict(), 200
 
     def create(self):
-        """Create an item."""
-        data = resource_requestctx.request_content
-        identity = g.identity
-        id_ = resource_requestctx.route["pid_value"]
+        """Edit a record.
 
-        return self.service.edit(identity, id_, data), 201
+        POST /records/:pid_value/draft
+        """
+        item = self.service.edit(
+            resource_requestctx.route["pid_value"],
+            g.identity,
+            resource_requestctx.request_content,
+        )
+        return item.to_dict(), 201
 
     def update(self):
-        """Update an item."""
-        identity = g.identity
-        id_ = resource_requestctx.route["pid_value"]
-        data = resource_requestctx.request_content
-        return self.service.update_draft(identity, id_, data), 200
+        """Update a draft.
+
+        PUT /records/:pid_value/draft
+        """
+        item = self.service.update_draft(
+            resource_requestctx.route["pid_value"],
+            g.identity,
+            resource_requestctx.request_content,
+            links_config=self.config.links_config,
+        )
+        return item.to_dict(), 200
 
     def delete(self):
-        """Delete an item."""
-        # TODO: IMPLEMENT ME!
-        return self.service.delete_draft(), 200
+        """Delete a draft.
+
+        DELETE /records/:pid_value/draft
+        """
+        self.service.delete_draft(
+            resource_requestctx.route["pid_value"],
+            g.identity,
+        ), 200
+        return None
 
 
+# TODO: (Lars) I didn't manage to fix below:
 class DraftVersionResource(CollectionResource):
     """Draft version resource."""
 
