@@ -9,25 +9,15 @@
 
 """Invenio Drafts Resources module to create REST APIs."""
 
-# from .deposit import DepositResource, DepositResourceConfig
-# from .draft import DraftActionResource, DraftResource, DraftVersionResource
-# from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
-#     DraftVersionResourceConfig
-# from .file import DraftFileActionResource, DraftFileResource
-# from .file_config import DraftFileActionResourceConfig, \
-#     DraftFileResourceConfig
+from .draft import DraftActionResource, DraftResource, DraftVersionResource
+from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
+    DraftVersionResourceConfig
 
-# __all__ = (
-#     "DepositResource",
-#     "DepositResourceConfig",
-#     "DraftResource",
-#     "DraftResourceConfig",
-#     "DraftActionResource",
-#     "DraftActionResourceConfig",
-#     "DraftVersionResource",
-#     "DrafVersiontResourceConfig",
-#     "DraftFileActionResourceConfig",
-#     "DraftFileActionResource",
-#     "DraftFileResourceConfig",
-#     "DraftFileResource",
-# )
+__all__ = (
+    "DraftResource",
+    "DraftResourceConfig",
+    "DraftActionResource",
+    "DraftActionResourceConfig",
+    "DraftVersionResource",
+    "DrafVersiontResourceConfig",
+)

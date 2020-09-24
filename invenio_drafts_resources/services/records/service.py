@@ -66,10 +66,13 @@ class RecordDraftService(RecordService):
         return self.result_item(
             self, identity, draft, links_config=links_config)
 
-    def update_draft(self, id_, identity, data, links_config=None):
+    def update_draft(self, id_, identity, data, links_config=None,
+                     revision_id=None):
         """Replace a draft."""
-        # TODO: etag and versioning
         draft = self.draft_cls.pid.resolve(id_, registered_only=False)
+
+        self.check_revision_id(draft, revision_id)
+
         # Permissions
         self.require_permission(identity, "update_draft", record=draft)
         data, _ = self.schema.load(
@@ -191,8 +194,9 @@ class RecordDraftService(RecordService):
         # Get record
         record = self.record_cls.pid.resolve(id_)
         # Create new record (relation done by minter)
+
         draft = self.draft_cls.create(
-            {},  # FIXME: How to pass data without pasing also pid fields
+            {"metadata": record.metadata},  # FIXME: This doesnt look good
             conceptpid=record.conceptpid,
             fork_version_id=record.revision_id
         )
@@ -212,10 +216,11 @@ class RecordDraftService(RecordService):
         return self.result_item(
             self, identity, draft, links_config=links_config)
 
-    def delete_draft(self, id_, identity):
+    def delete_draft(self, id_, identity, revision_id=None):
         """Delete a record from database and search indexes."""
-        # TODO: etag and versioning
         draft = self.draft_cls.pid.resolve(id_, registered_only=False)
+
+        self.check_revision_id(draft, revision_id)
 
         # Permissions
         self.require_permission(identity, "delete_draft", record=draft)

@@ -17,8 +17,7 @@ STUB_ITEM_RESULT = ({"TODO": "IMPLEMENT ME"}, 200)
 STUB_LIST_RESULT = ([{"TODO": "IMPLEMENT ME"}], 200)
 
 
-# Proposal: "Deposits" is the term to talk about entities that are either
-#           draft or published records
+# FIXME: Needs renaming
 class DepositResourceConfig(ResourceConfig):
     """Deposit resource config."""
 

@@ -27,7 +27,7 @@ class DraftResource(SingletonResource, ConfigLoaderMixin):
 
     def __init__(self, config=None, service=None):
         """Constructor."""
-        super().__init__(config=self.load_config(config))
+        super(DraftResource, self).__init__(config=self.load_config(config))
         self.service = service or RecordDraftService()
 
     def read(self):
@@ -50,7 +50,7 @@ class DraftResource(SingletonResource, ConfigLoaderMixin):
         item = self.service.edit(
             resource_requestctx.route["pid_value"],
             g.identity,
-            resource_requestctx.request_content,
+            links_config=self.config.links_config,
         )
         return item.to_dict(), 201
 
@@ -59,11 +59,13 @@ class DraftResource(SingletonResource, ConfigLoaderMixin):
 
         PUT /records/:pid_value/draft
         """
+        data = resource_requestctx.request_content
         item = self.service.update_draft(
             resource_requestctx.route["pid_value"],
             g.identity,
-            resource_requestctx.request_content,
+            data,
             links_config=self.config.links_config,
+            revision_id=resource_requestctx.headers.get("if_match"),
         )
         return item.to_dict(), 200
 
@@ -75,19 +77,20 @@ class DraftResource(SingletonResource, ConfigLoaderMixin):
         self.service.delete_draft(
             resource_requestctx.route["pid_value"],
             g.identity,
-        ), 200
-        return None
+            revision_id=resource_requestctx.headers.get("if_match"),
+        )
+        return None, 204
 
 
-# TODO: (Lars) I didn't manage to fix below:
-class DraftVersionResource(CollectionResource):
+class DraftVersionResource(CollectionResource, ConfigLoaderMixin):
     """Draft version resource."""
 
     default_config = DraftVersionResourceConfig
 
-    def __init__(self, service=None, *args, **kwargs):
+    def __init__(self, service=None, config=None):
         """Constructor."""
-        super(DraftVersionResource, self).__init__(*args, **kwargs)
+        super(DraftVersionResource, self).__init__(
+            config=self.load_config(config))
         self.service = service or RecordDraftService()
 
     def search(self):
@@ -100,17 +103,20 @@ class DraftVersionResource(CollectionResource):
         identity = g.identity
         id_ = resource_requestctx.route["pid_value"]
 
-        return self.service.new_version(identity, id_), 201
+        item = self.service.new_version(id_, identity)
+
+        return item.to_dict(), 201
 
 
-class DraftActionResource(SingletonResource):
+class DraftActionResource(SingletonResource, ConfigLoaderMixin):
     """Draft action resource."""
 
     default_config = DraftActionResourceConfig
 
-    def __init__(self, service=None, *args, **kwargs):
+    def __init__(self, service=None, config=None):
         """Constructor."""
-        super(DraftActionResource, self).__init__(*args, **kwargs)
+        super(DraftActionResource, self).__init__(
+            config=self.load_config(config))
         self.service = service or RecordDraftService()
 
     def create(self):
@@ -129,4 +135,4 @@ class DraftActionResource(SingletonResource):
         identity = g.identity
         id_ = resource_requestctx.route["pid_value"]
 
-        return cmd_func(identity, id_), 202
+        return cmd_func(id_, identity).to_dict(), 202
