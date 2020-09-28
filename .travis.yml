@@ -5,8 +5,9 @@
 # Invenio-RDM-Records is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
-addons:
-  postgresql: 9.5
+branches:
+  except:
+  - /^v\d+\.\d+(\.\d+)?(\S*)?$/
 
 notifications:
   email: false
@@ -30,13 +31,11 @@ services:
 
 env:
   global:
-    - ES7_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.3.0-linux-x86_64.tar.gz"
-    - ES_HOST=127.0.0.1
-    - SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres@localhost:5432/invenio"
+    - DOCKER_COMPOSE_VERSION=1.26.2
   matrix:
-    - REQUIREMENTS=lowest ES_URL=$ES7_DOWNLOAD_URL EXTRAS=all,postgresql,elasticsearch7
-    - REQUIREMENTS=release ES_URL=$ES7_DOWNLOAD_URL EXTRAS=all,postgresql,elasticsearch7
-    - REQUIREMENTS=devel ES_URL=$ES7_DOWNLOAD_URL EXTRAS=all,postgresql,elasticsearch7
+    - REQUIREMENTS=release EXTRAS=all,postgresql,elasticsearch6 ES_VERSION=ES_6_LATEST
+    - REQUIREMENTS=release EXTRAS=all,postgresql,elasticsearch7 ES_VERSION=ES_7_LATEST
+    - REQUIREMENTS=devel EXTRAS=all,postgresql,elasticsearch7 ES_VERSION=ES_7_LATEST
 
 python:
   - "3.6"
@@ -45,9 +44,10 @@ python:
 
 before_install:
   - "nvm install 14; nvm use 14"
-  - "mkdir /tmp/elasticsearch"
-  - "wget -O - $ES_URL | tar xz --directory=/tmp/elasticsearch --strip-components=1"
-  - "/tmp/elasticsearch/bin/elasticsearch > /tmp/local-es.log &"
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
   - "travis_retry pip install --upgrade pip setuptools py"
   - "travis_retry pip install twine wheel coveralls requirements-builder"
   - "requirements-builder -e $EXTRAS --level=min setup.py > .travis-lowest-requirements.txt"
@@ -57,19 +57,14 @@ before_install:
 install:
   - "travis_retry pip install -r .travis-${REQUIREMENTS}-requirements.txt"
   - "travis_retry pip install -e .[${EXTRAS}]"
+  - "pip freeze"
+
+before_script:
+  - "docker --version"
+  - "docker-compose --version"
 
 script:
   - "./run-tests.sh"
 
 after_success:
   - coveralls
-
-deploy:
-  provider: pypi
-  user: inveniosoftware
-  password:
-    secure: "DnNa0RXboNV8frLNGPeLssqgCJLTIpkgeTxmTA0XI8wF/HCmLqKDclulVDKzfJPS+sYINhWjOJjrWqohic8uIw3sgbbooDp9bMA93ySSVNcVYGWYeyOm0GgfFstWUGnYGPMeCFeZ8wd+bVJ9no4dSiMmD10e09fIwH3mVXoj4PSPImI5aDBBJCLyPOUWqF60jlaEZ789FJF0NenHEXy9jfjWgJBKlXzbN8QCXldZGXkQwT/6m/XCQ62VMCCwbChcB3gCdSXaLpMKQTnUaMsdNfd1QiQRTbv50qLPfgR57ybi2rnmNzkRD8yLvyYUYK17nxAvV2MHiwvin1kivU+HHwtFosMrqkgdpigieqWPGo8/RgROGOwq0y8T7nAtq0vCnRm0FxfAFtvGjHruuKnwNM98viP4QoICkMT0SSJpmw9xgqRQKYEW0QDkAhnXKH0JDKKWLLS0EiKzIGn8iv+9ibyC00Aqn4Dl2J55kiRiNi31o/0/qusvJ7ogD3b4xFtpS+r/3CiOl/aTAF/wu+4D+OSdp1dPWfmBBJ3/yGbdPoKsn2LjMXGkAVZZNOS9J0f4+BlPvnsbNn0qHMnI1maZRjOzojmvIJ28RhMvWwT0fL4WQYOpJ1jw2r+0nM1N7+m1vAtdppySijEIGZvxSDK4xsrpOp4fOQLLTo9AOLh4TcI="
-  distributions: "sdist bdist_wheel"
-  on:
-    tags: true
-    python: "3.6"

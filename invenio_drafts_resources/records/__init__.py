@@ -11,4 +11,8 @@
 from .api import Draft, Record
 from .models import DraftMetadataBase
 
-__all__ = ("Draft", "DraftMetadataBase", "Record")
+__all__ = (
+    "Draft",
+    "DraftMetadataBase",
+    "Record",
+)

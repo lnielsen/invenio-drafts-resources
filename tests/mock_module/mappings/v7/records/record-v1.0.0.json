@@ -1,0 +1,46 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "conceptid": {
+        "type": "keyword"
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "text"
+          },
+          "type": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "keyword"
+              },
+              "subtype": {
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      },
+      "created": {
+        "type": "date"
+      },
+      "updated": {
+        "type": "date"
+      },
+      "expires_at": {
+        "type": "date"
+      },
+      "uuid": {
+        "type": "keyword"
+      },
+      "version_id": {
+        "type": "integer"
+      }
+    }
+  }
+}

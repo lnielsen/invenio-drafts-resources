@@ -9,15 +9,15 @@
 
 """Invenio Drafts Resources module to create REST APIs."""
 
-from flask import g
+from flask import abort, g
 from flask_resources import CollectionResource, SingletonResource
 from flask_resources.context import resource_requestctx
 from invenio_records_resources.config import ConfigLoaderMixin
 
-from ..errors import ActionNotConfigured, CommandNotImplemented
 from ..services import RecordDraftService
 from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
     DraftVersionResourceConfig
+from .errors import ActionNotImplementedError
 
 
 class DraftResource(SingletonResource, ConfigLoaderMixin):
@@ -94,17 +94,22 @@ class DraftVersionResource(CollectionResource, ConfigLoaderMixin):
         self.service = service or RecordDraftService()
 
     def search(self):
-        """Perform a search over the items."""
+        """Perform a search over the items.
+
+        GET /records/:pid_value/versions
+        """
         # TODO: IMPLEMENT ME!
-        return self.service.search()
+        return self.service.search(), 200
 
     def create(self):
-        """Create an item."""
-        identity = g.identity
-        id_ = resource_requestctx.route["pid_value"]
+        """Create a new version.
 
-        item = self.service.new_version(id_, identity)
-
+        POST /records/:pid_value/versions
+        """
+        item = self.service.new_version(
+            resource_requestctx.route["pid_value"],
+            g.identity
+        )
         return item.to_dict(), 201
 
 
@@ -120,19 +125,23 @@ class DraftActionResource(SingletonResource, ConfigLoaderMixin):
         self.service = service or RecordDraftService()
 
     def create(self):
-        """Any POST business logic."""
+        """Any POST business logic.
+
+        POST /records/:pid_value/actions/:action
+        """
         action = resource_requestctx.route["action"]
         try:
             cmd_name = self.config.action_commands[action]
             cmd_func = getattr(self.service, cmd_name)
         except KeyError:
-            raise ActionNotConfigured(action=action)
+            raise abort(404)
         except AttributeError:
-            raise CommandNotImplemented(cmd_name)
+            raise ActionNotImplementedError(cmd_name)
 
         # NOTE: Due to the route we assume the commands only need
         # id_ and identity
-        identity = g.identity
-        id_ = resource_requestctx.route["pid_value"]
-
-        return cmd_func(id_, identity).to_dict(), 202
+        item = cmd_func(
+            resource_requestctx.route["pid_value"],
+            g.identity
+        )
+        return item.to_dict(), 202

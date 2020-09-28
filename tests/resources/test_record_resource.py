@@ -174,10 +174,7 @@ def test_action_not_configured(client, identity_simple):
     response = client.post(
         "/mocks/1234-abcd/draft/actions/non-configured", headers=HEADERS
     )
-
     assert response.status_code == 404
-    assert response.json['message'] == \
-        'Action non-configured not configured.'
 
 
 def test_command_not_implemented(client, identity_simple):
@@ -186,10 +183,7 @@ def test_command_not_implemented(client, identity_simple):
     response = client.post(
         "/mocks/1234-abcd/draft/actions/command", headers=HEADERS
     )
-
     assert response.status_code == 500
-    assert response.json['message'] == \
-        'Command not_implemented not implemented.'
 
 
 #

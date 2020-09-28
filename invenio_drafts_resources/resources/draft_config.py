@@ -12,8 +12,6 @@
 from flask_resources.errors import HTTPJSONException, create_errormap_handler
 from invenio_records_resources.resources import RecordResourceConfig
 
-from ..errors import ActionNotConfigured, CommandNotImplemented
-
 
 class DraftResourceConfig(RecordResourceConfig):
     """Draft resource config."""
@@ -28,23 +26,8 @@ class DraftActionResourceConfig(RecordResourceConfig):
     list_route = "/records/<pid_value>/draft/actions/<action>"
     item_route = None  # To avoid issues, due to inheritance.
 
-    action_commands = {
+    actions = {
         "publish": "publish",
-    }
-
-    error_map = {
-        ActionNotConfigured: create_errormap_handler(
-            lambda e: HTTPJSONException(
-                code=404,
-                description=e.description,
-            )
-        ),
-        CommandNotImplemented: create_errormap_handler(
-            lambda e: HTTPJSONException(
-                code=500,
-                description=e.description,
-            )
-        ),
     }
 
 

@@ -9,10 +9,7 @@
 
 """RecordDraft Service API."""
 
-import uuid
-
 from invenio_db import db
-from invenio_pidstore.errors import PIDDoesNotExistError
 from invenio_records_resources.services import RecordService
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -24,7 +21,7 @@ class RecordDraftService(RecordService):
 
     This service provides an interface to business logic for
     published AND draft records. When creating a custom service
-    for a specialized record (e.g. Authors), consider if you need
+    for a specialized record (e.g. authors), consider if you need
     draft functionality or not. If you do, inherit from this service;
     otherwise, inherit from the RecordService directly.
 
@@ -32,14 +29,6 @@ class RecordDraftService(RecordService):
     """
 
     default_config = RecordDraftServiceConfig
-
-    @property
-    def indexer(self):
-        """Factory for creating an indexer instance."""
-        return self.config.indexer_cls(
-            record_cls=self.config.record_cls,
-            record_to_index=self.config.record_to_index
-        )
 
     # Draft attrs
     @property
@@ -88,10 +77,8 @@ class RecordDraftService(RecordService):
         draft.update(data)
         draft.clear_none()
         draft.commit()
-
-        if self.indexer:
-            # FIXME: This would double index. Need delete->index?
-            self.indexer.index(draft)
+        db.session.commit()
+        self.indexer.index(draft)
 
         return self.result_item(
             self, identity, draft, links_config=links_config)
@@ -99,24 +86,20 @@ class RecordDraftService(RecordService):
     def create(self, identity, data, links_config=None):
         """Create a draft for a new record.
 
-        It does not eagerly create the associated record.
+        It does NOT eagerly create the associated record.
         """
         # FIXME: This won't work with partial validation
         return self._create(
            self.draft_cls, identity, data, links_config=links_config
         )
 
-    def _patch_data(self, record, data):
-        """Temporarily here until the merge strategy is set."""
-        # TODO: Implement better update/merge strategy
-        for key in data.keys():
-            record[key] = data[key]
-
     def _edit_or_create(self, id_):
         """Edit or create a draft based on the pid."""
-        try:  # Draft exists
-            draft = self.draft_cls.pid.resolve(id_, registered_only=False)
-        except NoResultFound:  # New draft
+        try:
+            # Draft exists
+            return self.draft_cls.pid.resolve(id_, registered_only=False)
+        except NoResultFound:
+            # Draft does not exists - create a new one
             record = self.record_cls.pid.resolve(id_)  # Needs Record as getter
             draft = self.draft_cls.create(
                 {}, id_=record.id, fork_version_id=record.revision_id,
@@ -135,7 +118,12 @@ class RecordDraftService(RecordService):
         :param id_: record PID value.
         """
         self.require_permission(identity, "create")
+
         # Get draft
+        # TODO: Workflow does not seem correct:
+        # 1 if it exists, do nothing and redirect (components) shouldn't run)
+        # 2 if it doesn't exist return
+
         draft = self._edit_or_create(id_)
 
         # Run components
@@ -144,11 +132,9 @@ class RecordDraftService(RecordService):
                 component.edit(identity, draft=draft)
 
         draft.commit()
-        db.session.commit()  # Persist DB
+        db.session.commit()
 
-        # NOTE: Second condition avoids re-indexing and existing draft
-        if self.indexer and draft.pid.pid_value != id_:
-            self.indexer.index(draft)
+        self.indexer.index(draft)
 
         return self.result_item(
             self, identity, draft, links_config=links_config)
@@ -156,8 +142,10 @@ class RecordDraftService(RecordService):
     def publish(self, id_, identity, links_config=None):
         """Publish a draft."""
         self.require_permission(identity, "publish")
+
         # Get draft
         draft = self.draft_cls.pid.resolve(id_, registered_only=False)
+
         # Fully validate draft now
         # TODO: Add error_map for `ValidationError` in the resource config
         # FIXME: Check partial vs absolute validation
@@ -178,12 +166,11 @@ class RecordDraftService(RecordService):
         db.session.commit()
 
         # Remove draft. Hard delete to remove the uuid (pk) from the table.
+        # TODO: Question is this what we wanted?
         draft.delete(force=True)
         db.session.commit()  # Persist DB
-        # Index the record
-        if self.indexer:
-            self.indexer.delete(draft)
-            self.indexer.index(record)
+        self.indexer.delete(draft)
+        self.indexer.index(record)
 
         return self.result_item(
             self, identity, record, links_config=links_config)
@@ -191,10 +178,11 @@ class RecordDraftService(RecordService):
     def new_version(self, id_, identity, links_config=None):
         """Create a new version of a record."""
         self.require_permission(identity, "create")
+
         # Get record
         record = self.record_cls.pid.resolve(id_)
-        # Create new record (relation done by minter)
 
+        # Create new record
         draft = self.draft_cls.create(
             {"metadata": record.metadata},  # FIXME: This doesnt look good
             conceptpid=record.conceptpid,
@@ -207,11 +195,8 @@ class RecordDraftService(RecordService):
                 component.new_version(identity, draft=draft, record=record)
 
         draft.commit()
-        db.session.commit()  # Persist DB
-
-        # Index the record
-        if self.indexer:
-            self.indexer.index(draft)
+        db.session.commit()
+        self.indexer.index(draft)
 
         return self.result_item(
             self, identity, draft, links_config=links_config)
@@ -232,8 +217,6 @@ class RecordDraftService(RecordService):
 
         draft.delete()
         db.session.commit()
-
-        if self.indexer:
-            self.indexer.delete(draft)
+        self.indexer.delete(draft)
 
         return True

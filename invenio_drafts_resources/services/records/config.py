@@ -16,7 +16,6 @@ from invenio_records_resources.services.records.components import \
 from .components import RelationsComponent
 from .permissions import RecordDraftPermissionPolicy
 from .schema import RecordSchema
-from .search import draft_record_to_index
 
 
 class RecordDraftServiceConfig(RecordServiceConfig):
@@ -25,8 +24,6 @@ class RecordDraftServiceConfig(RecordServiceConfig):
     # Service configuration
     permission_policy_cls = RecordDraftPermissionPolicy
 
-    # DraftService configuration.
-    record_to_index = draft_record_to_index
     # WHY: We want to force user input choice here.
     draft_cls = None
 

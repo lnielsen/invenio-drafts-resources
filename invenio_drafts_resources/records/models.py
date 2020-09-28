@@ -19,7 +19,7 @@ class DraftMetadataBase(RecordMetadataBase):
     """Represent a base class for draft metadata."""
 
     fork_version_id = db.Column(db.Integer)
-    """Version id of the record it is draft of."""
+    """Version ID of the record."""
 
     expires_at = db.Column(
         db.DateTime().with_variant(mysql.DATETIME(fsp=6), "mysql"),

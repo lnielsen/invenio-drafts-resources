@@ -12,12 +12,16 @@
 from .draft import DraftActionResource, DraftResource, DraftVersionResource
 from .draft_config import DraftActionResourceConfig, DraftResourceConfig, \
     DraftVersionResourceConfig
+from .userrecords import UserRecordsResource
+from .userrecords_config import UserRecordsResourceConfig
 
 __all__ = (
-    "DraftResource",
-    "DraftResourceConfig",
     "DraftActionResource",
     "DraftActionResourceConfig",
+    "DraftResource",
+    "DraftResourceConfig",
     "DraftVersionResource",
     "DrafVersiontResourceConfig",
+    "UserRecordsResource",
+    "UserRecordsResourceConfig",
 )

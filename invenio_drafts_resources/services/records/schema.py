@@ -14,6 +14,7 @@ from marshmallow import fields
 
 
 class RecordSchema(RecordSchemaBase):
-    """Schema for records v1 in JSON."""
+    """Schema for records in JSON."""
 
     conceptid = fields.Str()
+    expires = fields.Str()

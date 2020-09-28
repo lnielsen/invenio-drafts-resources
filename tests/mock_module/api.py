@@ -1,6 +1,7 @@
 """Example of a record draft API."""
 
 from invenio_records.systemfields import ConstantField
+from invenio_records_resources.records.systemfields import IndexField
 
 from invenio_drafts_resources.records.api import Draft as DraftBase
 from invenio_drafts_resources.records.api import Record as RecordBase
@@ -18,6 +19,8 @@ class Record(RecordBase):
     schema = ConstantField(
         '$schema', 'http://localhost/schemas/records/record-v1.0.0.json')
 
+    index = IndexField('records-record-v1.0.0', search_alias='records')
+
 
 class Draft(DraftBase):
     """Example record API."""
@@ -28,3 +31,5 @@ class Draft(DraftBase):
     # System fields
     schema = ConstantField(
         '$schema', 'http://localhost/schemas/records/record-v1.0.0.json')
+
+    index = IndexField('drafts-draft-v1.0.0', search_alias='drafts')

@@ -11,17 +11,9 @@
 
 from flask_resources import CollectionResource, SingletonResource
 from flask_resources.context import resource_requestctx
-# TODO: expose correctly in flask-resources
-from flask_resources.resources import ResourceConfig
 
 from ..services import FileMetadataService, FileService
-
-
-class DraftFileResourceConfig(ResourceConfig):
-    """Draft file resource config."""
-
-    list_route = "/records/<pid_value>/draft/files"
-    item_route = "/records/<pid_value>/draft/files/<key>"
+from .file_config import DraftFileActionResourceConfig, DraftFileResourceConfig
 
 
 class DraftFileResource(CollectionResource):
@@ -70,17 +62,6 @@ class DraftFileResource(CollectionResource):
         """Delete an item."""
         # TODO: IMPLEMENT ME!
         return self.service.delete(), 200
-
-
-class DraftFileActionResourceConfig(ResourceConfig):
-    """Draft file action resource config."""
-
-    # QUESTIONs:
-    # 1- Should the item_route be used for SingletonResource actually? Change
-    #    in Flask-Resource would be needed
-    # 2- Should the list_route instead precede download with "actions" to be in
-    #    keeping with other actions endpoints?
-    list_route = "/records/<pid_value>/draft/files/<key>/<action>"
 
 
 class DraftFileActionResource(SingletonResource):
