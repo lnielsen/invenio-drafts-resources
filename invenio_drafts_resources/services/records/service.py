@@ -38,42 +38,22 @@ class RecordDraftService(RecordService):
 
     # High-level API
     # Inherits record read, create, delete and update
-
-    def search(self, identity, params=None, links_config=None, **kwargs):
+    def search(self, identity, params=None, links_config=None,
+               es_preference=None, **kwargs):
         """Search for records matching the querystring."""
-        # Permissions
-        self.require_permission(identity, "search")
-
-        # Merge params
-        # NOTE: We allow using both the params variable, as well as kwargs. The
-        # params is used by the resource, and kwargs is used to have an easier
-        # programatic interface .search(idty, q='...') instead of
-        # .search(idty, params={'q': '...'}).
         params = params or {}
         params.update(kwargs)
 
-        # Create a Elasticsearch DSL
-        # Params are returned as [], we give priority to published.
         status = params.pop("status", "published")
-        _record_cls = self.draft_cls if "draft" == status else self.record_cls
+        record_cls = self.draft_cls if status == "draft" else self.record_cls
 
-        search = self.search_request(
-            identity, params, _record_cls, preference=False)
-
-        # Run components
-        for component in self.components:
-            if hasattr(component, 'search'):
-                search = component.search(identity, search, params)
-
-        # Execute the search
-        search_result = search.execute()
-
-        return self.result_list(
-            self,
+        return super().search(
             identity,
-            search_result,
-            params,
-            links_config=links_config
+            params=params,
+            links_config=links_config,
+            es_preference=es_preference,
+            record_cls=record_cls,
+            # we don't pass kwargs, because they have already been merged.
         )
 
     def read_draft(self, id_, identity, links_config=None):
