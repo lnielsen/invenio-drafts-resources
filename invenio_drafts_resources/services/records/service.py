@@ -38,46 +38,40 @@ class RecordDraftService(RecordService):
         return self.config.draft_cls
 
     # High-level API
-    # Inherits record read, create, delete and update
-    def search(self, identity, params=None, links_config=None,
-               es_preference=None, **kwargs):
-        """Search for published records matching the querystring."""
-        params = params or {}
-        params.update(kwargs)
-
-        return super().search(
-            identity,
-            params=params,
-            links_config=links_config,
-            es_preference=es_preference,
-            record_cls=self.record_cls,
-            # we don't pass kwargs, because they have already been merged.
-        )
-
+    # Inherits record search, read, create, delete and update
     def search_drafts(self, identity, params=None, links_config=None,
                       es_preference=None, **kwargs):
         """Search for drafts records matching the querystring."""
-        params = params or {}
-        params.update(kwargs)
+        self.require_permission(identity, 'search_drafts')
 
-        return super().search(
+        # Prepare and execute the search
+        params = params or {}
+
+        search_result = self._search(
+            'search_drafts',
             identity,
-            params=params,
-            links_config=links_config,
-            es_preference=es_preference,
+            params,
+            es_preference,
             record_cls=self.draft_cls,
             # `has_draft` systemfield is not defined here. This is not ideal
             # but it helps avoid overriding the method. See how is used in
             # https://github.com/inveniosoftware/invenio-rdm-records
-            extra_filter=Q('term', has_draft=False)
-            # we don't pass kwargs, because they have already been merged.
+            extra_filter=Q('term', has_draft=False),
+            permission_action='read_draft',
+            **kwargs
+        ).execute()
+
+        return self.result_list(
+            self,
+            identity,
+            search_result,
+            params,
+            links_config=links_config
         )
 
     def read_draft(self, id_, identity, links_config=None):
         """Retrieve a draft."""
         # Resolve and require permission
-        # TODO must handle delete records and tombstone pages
-        # TODO: Can we make in a similar fashion than "create"?
         draft = self.draft_cls.pid.resolve(id_, registered_only=False)
         self.require_permission(identity, "read_draft", record=draft)
 
@@ -115,9 +109,6 @@ class RecordDraftService(RecordService):
                 component.update_draft(
                     identity, record=draft, data=data)
 
-        # TODO: remove next two lines. (See also record-resources)
-        draft.update(data)
-        draft.clear_none()
         draft.commit()
         db.session.commit()
         self.indexer.index(draft)
@@ -191,8 +182,8 @@ class RecordDraftService(RecordService):
         db.session.commit()
         self.indexer.index(draft)
 
-        # Re index the record to trigger update of computed values in the
-        # available dumpers
+        # Reindex the record to trigger update of computed values in the
+        # available dumpers of the record.
         self.indexer.index(record)
 
         return self.result_item(
@@ -217,6 +208,7 @@ class RecordDraftService(RecordService):
 
         # Get data layer draft
         draft = self.draft_cls.pid.resolve(id_, registered_only=False)
+
         # Convert to service layer draft result item
         draft_item = self.result_item(
             self, identity, draft, links_config=None  # no need for links
@@ -246,12 +238,11 @@ class RecordDraftService(RecordService):
             if hasattr(component, 'publish'):
                 component.publish(draft=draft, record=record)
 
-        # Register if needed
+        # Register persistent identifiers if needed.
         if not record.is_published:
             record.register()
 
         record.commit()
-        db.session.commit()
         draft.delete()
         db.session.commit()  # Persist DB
         self.indexer.delete(draft)
@@ -269,9 +260,10 @@ class RecordDraftService(RecordService):
 
         # Create new record
         draft = self.draft_cls.create(
-            {"metadata": record.metadata},  # FIXME: This doesnt look good
+            {},
             conceptpid=record.conceptpid,
-            fork_version_id=record.revision_id
+            # TODO: Need to check if below line is correct?
+            fork_version_id=record.revision_id,
         )
 
         # Run components
@@ -295,22 +287,26 @@ class RecordDraftService(RecordService):
         # Permissions
         self.require_permission(identity, "delete_draft", record=draft)
 
+        # Get published record if exists
+        try:
+            record = self.record_cls.get_record(draft.id)
+        except NoResultFound:
+            record = None
+
         # Run components
         for component in self.components:
             if hasattr(component, 'delete_draft'):
-                component.delete(identity, record=draft)
+                component.delete_draft(identity, draft=draft, record=record)
 
-        try:
-            record = self.record_cls.pid.resolve(id_, registered_only=False)
-        except NoResultFound:  # FIXME: Should be at resolver level?
-            record = None
-        # If it is tight to a record soft remove, else wipe fully
-        force = True if record else False
+        # We soft-delete a draft when a published record exists, in order to
+        # keep the version_id counter around for optimistic concurrency
+        # control (both for ES indexing and for REST API clients)
+        force = False if record else True
         draft.delete(force=force)
         db.session.commit()
         self.indexer.delete(draft)
 
-        # Re index the record to trigger update of computed values in the
+        # Reindex the record to trigger update of computed values in the
         # available dumpers
         if record:
             self.indexer.index(record)

@@ -45,15 +45,15 @@ class DraftFilesComponent(ServiceComponent):
             record.files.enabled = False
 
 
+class DraftMetadataComponent(MetadataComponent):
+    """Service component for draft metadata integration."""
+
+    def update_draft(self, identity, data=None, record=None, **kwargs):
+        """Update draft metadata."""
+        record.metadata = data.get('metadata', {})
+
+
 class RelationsComponent(ServiceComponent):
     """Service component for PID relations integration."""
 
     # PIDNodeVersioning(pid=conceptrecid).insert_draft_child(child_pid=recid)
-
-
-class DraftMetadataComponent(MetadataComponent):
-    """Service component for draft metadata integration."""
-
-    def update_draft(self, *args, **kwargs):
-        """Update draft metadata."""
-        self.update(*args, **kwargs)

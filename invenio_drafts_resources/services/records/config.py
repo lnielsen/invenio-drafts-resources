@@ -10,10 +10,8 @@
 """RecordDraft Service API config."""
 
 from invenio_records_resources.services import RecordServiceConfig
-from invenio_records_resources.services.records.components import \
-    MetadataComponent
 
-from .components import RelationsComponent
+from .components import DraftMetadataComponent
 from .permissions import RecordDraftPermissionPolicy
 from .schema import RecordSchema
 
@@ -29,6 +27,6 @@ class RecordDraftServiceConfig(RecordServiceConfig):
 
     schema = RecordSchema
 
-    components = RecordServiceConfig.components + [
-        RelationsComponent,
+    components = [
+        DraftMetadataComponent,
     ]

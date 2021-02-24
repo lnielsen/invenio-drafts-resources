@@ -110,7 +110,7 @@ def test_update_draft_invalid_field(app, service, identity_simple, input_data):
     updated_draft_dict = updated_draft.to_dict()
 
     assert draft.id == updated_draft.id
-    assert updated_draft["metadata"]['title'] == orig_title
+    assert 'title' not in updated_draft["metadata"]
     assert updated_draft_dict['errors'][0]['field'] == 'metadata.title'
 
 
@@ -272,6 +272,7 @@ def test_mutiple_edit(app, service, identity_simple, input_data):
     assert draft._record.revision_id == 7  # soft-delete, undelete, update
 
 
+@pytest.mark.skip()  # Disable until properly implemented.
 def test_create_publish_new_version(app, service, identity_simple,
                                     input_data):
     """Test creating a new revision of a record.
