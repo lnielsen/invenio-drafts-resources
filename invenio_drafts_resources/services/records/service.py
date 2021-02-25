@@ -302,11 +302,11 @@ class RecordDraftService(RecordService):
 
         draft.delete(force=force)
         db.session.commit()
-        self.indexer.delete(draft)
+        self.indexer.delete(draft, refresh=True)
 
         # Reindex the record to trigger update of computed values in the
         # available dumpers
         if record:
-            self.indexer.index(record)
+            self.indexer.index(record, arguments={"refresh": True})
 
         return True
