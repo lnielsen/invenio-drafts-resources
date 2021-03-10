@@ -15,7 +15,7 @@ import pytest
 def _assert_single_item_response(response):
     """Assert the fields present on a single item response."""
     response_fields = response.json.keys()
-    fields_to_check = ['id', 'conceptid', 'metadata',
+    fields_to_check = ['id', 'metadata',
                        'created', 'updated', 'links']
 
     for field in fields_to_check:

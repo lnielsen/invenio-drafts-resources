@@ -40,9 +40,8 @@ def test_create_draft(app, service, identity_simple, input_data):
 
     # Check for pid and parent pid
     assert draft['id']
-    assert draft['conceptid']
     assert draft._record.pid.status == PIDStatus.NEW
-    assert draft._record.conceptpid.status == PIDStatus.NEW
+    assert draft._record.parent.pid.status == PIDStatus.NEW
     assert 'errors' not in draft_dict
 
 
@@ -60,9 +59,8 @@ def test_create_empty_draft(app, service, identity_simple):
     draft_dict = draft.to_dict()
 
     assert draft['id']
-    assert draft['conceptid']
     assert draft._record.pid.status == PIDStatus.NEW
-    assert draft._record.conceptpid.status == PIDStatus.NEW
+    assert draft._record.parent.pid.status == PIDStatus.NEW
     assert draft_dict['errors'][0]['field'] == 'metadata.title'
 
 
@@ -146,7 +144,7 @@ def test_publish_draft(app, service, identity_simple, input_data):
     # Needs `app` context because of invenio_access/permissions.py#166
     record = _create_and_publish(service, input_data, identity_simple)
     assert record._record.pid.status == PIDStatus.REGISTERED
-    assert record._record.conceptpid.status == PIDStatus.REGISTERED
+    assert record._record.parent.pid.status == PIDStatus.REGISTERED
 
     for key, value in input_data.items():
         assert record[key] == value
@@ -161,7 +159,7 @@ def test_publish_draft(app, service, identity_simple, input_data):
 
     assert record.id
     assert record._record.pid.status == PIDStatus.REGISTERED
-    assert record._record.conceptpid.status == PIDStatus.REGISTERED
+    assert record._record.parent.pid.status == PIDStatus.REGISTERED
 
     for key, value in input_data.items():
         assert record[key] == value
@@ -188,7 +186,7 @@ def test_fail_to_publish_invalid_draft(app, service, identity_simple):
     draft = service.read_draft(draft.id, identity_simple)
     assert draft
     assert draft._record.pid.status == PIDStatus.NEW
-    assert draft._record.conceptpid.status == PIDStatus.NEW
+    assert draft._record.parent.pid.status == PIDStatus.NEW
 
     # Test no published record exists
     with pytest.raises(PIDUnregistered) as e:
@@ -284,17 +282,15 @@ def test_create_publish_new_version(app, service, identity_simple,
     draft = service.new_version(recid, identity_simple)
 
     assert draft._record.revision_id == 1
-    assert draft['conceptid'] == record['conceptid']
     assert draft['id'] != record['id']
     assert draft._record.pid.status == PIDStatus.NEW
-    assert draft._record.conceptpid.status == PIDStatus.REGISTERED
+    assert draft._record.parent.pid.status == PIDStatus.REGISTERED
 
     # Publish it
     record_2 = service.publish(draft.id, identity_simple)
 
     assert record_2.id
     assert record_2._record.pid.status == PIDStatus.REGISTERED
-    assert record_2._record.conceptpid.status == PIDStatus.REGISTERED
+    assert record_2._record.parent.pid.status == PIDStatus.REGISTERED
     assert record_2._record.revision_id == 1
-    assert record_2['conceptid'] == record['conceptid']
     assert record_2['id'] != record['id']

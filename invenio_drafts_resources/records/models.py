@@ -13,6 +13,28 @@ from datetime import datetime
 from invenio_db import db
 from invenio_records.models import RecordMetadataBase
 from sqlalchemy.dialects import mysql
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy_utils.types import UUIDType
+
+
+def ParentRecordMixin(parent_record_cls):
+    """A mixin factory that add the foreign keys to the parent record.
+
+    It is intended to be added to the "child" record class, e.g.:
+    ``class MyRecord(RecordBase, ParentRecordMixin(MyRecordParentClass))``.
+    """
+    class Mixin:
+        @declared_attr
+        def parent_id(cls):
+            return db.Column(UUIDType, db.ForeignKey(parent_record_cls.id))
+
+        @declared_attr
+        def parent(cls):
+            return db.relationship(parent_record_cls)
+
+        # TODO: Add parent_order and/or parent_latest
+        # TODO: Should both records and drafts have an order?
+    return Mixin
 
 
 class DraftMetadataBase(RecordMetadataBase):

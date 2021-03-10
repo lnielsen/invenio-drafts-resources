@@ -16,14 +16,15 @@ from mock_module.api import Draft
 
 
 @pytest.fixture()
-def example_record(db, input_data):
-    """Example record."""
-    record = Draft.create(
+def example_draft(db, input_data):
+    """Example draft."""
+    draft = Draft.create(
         input_data,
         expires_at=datetime(2020, 9, 7, 0, 0)
     )
+    draft.commit()
     db.session.commit()
-    return record
+    return draft
 
 
 @pytest.fixture()

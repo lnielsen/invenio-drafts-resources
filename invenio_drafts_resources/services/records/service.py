@@ -141,6 +141,7 @@ class RecordDraftService(RecordService):
         :param id_: record PID value.
         """
         self.require_permission(identity, "create")
+
         # Draft exists - return it
         try:
             draft = self.draft_cls.pid.resolve(id_, registered_only=False)
@@ -149,8 +150,9 @@ class RecordDraftService(RecordService):
         except NoResultFound:
             pass
 
-        # Draft does not exists - create a new draft or get a soft deleted
-        # draft.
+        # Draft does not exists - so get the main record we want edit and
+        # create a draft by 1) either undeleting a soft-deleted draft or 2)
+        # create a new draft
         record = self.record_cls.pid.resolve(id_)
         try:
             # We soft-delete a draft once it has been published, in order to
@@ -161,7 +163,6 @@ class RecordDraftService(RecordService):
                 draft.undelete()
                 draft.update(**record)
                 draft.pid = record.pid
-                draft.conceptpid = record.conceptpid
                 draft.fork_version_id = record.revision_id
         except NoResultFound:
             # If a draft was ever force deleted, then we will create the draft.
@@ -170,7 +171,7 @@ class RecordDraftService(RecordService):
             # case.
             draft = self.draft_cls.create(
                 record, id_=record.id, fork_version_id=record.revision_id,
-                pid=record.pid, conceptpid=record.conceptpid
+                pid=record.pid,
             )
 
         # Run components
@@ -230,8 +231,13 @@ class RecordDraftService(RecordService):
                                # explicit
         )
 
-        # Create or update published record
-        record = self.record_cls.create_or_update_from(draft)
+        # Set draft data in record
+        if draft.is_published:
+            record = self.record_cls.get_record(draft.id)
+            record.update_from(draft)
+        else:
+            # New record
+            record = self.record_cls.create_from(draft)
 
         # Run components
         for component in self.components:
@@ -254,7 +260,7 @@ class RecordDraftService(RecordService):
         # Get record
         record = self.record_cls.pid.resolve(id_)
 
-        # Create new record
+        # Create new draft
         draft = self.draft_cls.create(
             {},
             conceptpid=record.conceptpid,
@@ -302,6 +308,9 @@ class RecordDraftService(RecordService):
 
         draft.delete(force=force)
         db.session.commit()
+        # We refresh the index because users are usually redirected to a
+        # search result immediately after, and we don't want the users to see
+        # their just deleted draft.
         self.indexer.delete(draft, refresh=True)
 
         # Reindex the record to trigger update of computed values in the

@@ -24,9 +24,9 @@ class PIDComponent(ServiceComponent):
         """Unregister persistent identifiers for unpublished drafts."""
         if force:
             draft.__class__.pid.session_merge(draft)
-            draft.__class__.conceptpid.session_merge(draft)
             draft.pid.delete()
-            draft.conceptpid.delete()
+            draft.parent.__class__.pid.session_merge(draft.parent)
+            draft.parent.pid.delete()
 
 
 class DraftFilesComponent(ServiceComponent):
