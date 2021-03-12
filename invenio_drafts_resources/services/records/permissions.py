@@ -20,6 +20,8 @@ class RecordDraftPermissionPolicy(RecordPermissionPolicy):
     # Default create should be "authenticated"?
     # TODO: Subclass records-resources policy and add *_draft actions
     can_create = [AnyUser()]
+    can_new_version = [AnyUser()]
+    can_edit = [AnyUser()]
     can_publish = [AnyUser()]
     can_read_draft = [AnyUser()]
     can_update_draft = [AnyUser()]

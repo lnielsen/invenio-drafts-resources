@@ -8,7 +8,9 @@
 
 """Parent record system field."""
 
+from invenio_db import db
 from invenio_records.systemfields import RelatedModelField
+from sqlalchemy.exc import IntegrityError
 
 
 class ParentField(RelatedModelField):
@@ -45,11 +47,35 @@ class ParentField(RelatedModelField):
         return parent
 
     def delete(self, record, force=False):
-        """Method to delete the parent record."""
+        """Method to delete the parent record.
+
+        The parent record will only be hard deleted if this is the last
+        record/draft with links to it.
+        """
+        # A *record* is configured to never delete the parent
+        # automatically.
+        # A *draft* is configured to delete the parent on hard delete but not
+        # soft delete.
+        #
+        # A draft may be hard-deleted in two cases: 1) a new record 2) a new
+        # record version. In the case 1, only a draft and the parent record
+        # exists. In case 2, one or more drafts and records may exists with a
+        # foreign key to the parent record.
+        #
+        # The logic implemented here, thus on a hard delete tries to delete the
+        # the parent record and relies on the database integrity constraints
+        # to prevent the parent record from being deleted in case more
+        # drafts/records.
         parent = getattr(record, self.attr_name)
         if parent:
             if force and self._hard_delete:
-                parent.delete(force=True)
+                try:
+                    with db.session.begin_nested():
+                        parent.delete(force=True)
+                except IntegrityError:
+                    # It's ok - the draft/record linking to this parent is not
+                    # the last one.
+                    pass
             elif not force and self._soft_delete:
                 parent.delete(force=False)
 

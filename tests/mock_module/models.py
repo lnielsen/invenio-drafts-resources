@@ -4,7 +4,7 @@ from invenio_db import db
 from invenio_records.models import RecordMetadataBase
 
 from invenio_drafts_resources.records import DraftMetadataBase, \
-    ParentRecordMixin
+    ParentRecordMixin, ParentStateMixin
 
 
 class ParentRecordMetadata(db.Model, RecordMetadataBase):
@@ -25,3 +25,11 @@ class RecordMetadata(db.Model, RecordMetadataBase,
     """Model for mock module metadata."""
 
     __tablename__ = 'record_mock_metadata'
+
+
+class ParentState(db.Model, ParentStateMixin):
+    """Model for mock module for parent state."""
+
+    parent_record_model = ParentRecordMetadata
+    record_model = RecordMetadata
+    draft_model = DraftMetadata

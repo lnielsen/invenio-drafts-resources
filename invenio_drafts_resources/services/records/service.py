@@ -140,11 +140,14 @@ class RecordDraftService(RecordService):
         Note: Because of the workflow, this method does not accept data.
         :param id_: record PID value.
         """
-        self.require_permission(identity, "create")
-
         # Draft exists - return it
         try:
+            # Resolve
             draft = self.draft_cls.pid.resolve(id_, registered_only=False)
+
+            # Permissions
+            self.require_permission(identity, "can_edit", record=draft)
+
             return self.result_item(
                 self, identity, draft, links_config=links_config)
         except NoResultFound:
@@ -154,6 +157,10 @@ class RecordDraftService(RecordService):
         # create a draft by 1) either undeleting a soft-deleted draft or 2)
         # create a new draft
         record = self.record_cls.pid.resolve(id_)
+
+        # Permissions
+        self.require_permission(identity, "can_edit", record=record)
+
         try:
             # We soft-delete a draft once it has been published, in order to
             # keep the version_id counter around for optimistic concurrency
@@ -164,11 +171,15 @@ class RecordDraftService(RecordService):
                 draft.update(**record)
                 draft.pid = record.pid
                 draft.fork_version_id = record.revision_id
+                # Note, draft.parent_id/bucket_id values was kept in the
+                # soft-deleted record, so we are not setting them again here.
+                # TODO: what about expires? We need to set a new date here.
         except NoResultFound:
             # If a draft was ever force deleted, then we will create the draft.
             # This is a very exceptional case as normally, when we edit a
             # record then the soft-deleted draft exists and we are in above
             # case.
+            # TODO: BELOW WILL NOT WORK - it's missing parent
             draft = self.draft_cls.create(
                 record, id_=record.id, fork_version_id=record.revision_id,
                 pid=record.pid,
@@ -238,6 +249,7 @@ class RecordDraftService(RecordService):
         else:
             # New record
             record = self.record_cls.create_from(draft)
+            # TODO: state: unset next, update latest
 
         # Run components
         for component in self.components:
@@ -255,30 +267,50 @@ class RecordDraftService(RecordService):
 
     def new_version(self, id_, identity, links_config=None):
         """Create a new version of a record."""
-        self.require_permission(identity, "create")
-
-        # Get record
+        # Get the a record - i.e. you can only create a new version in case
+        # at least one published record already exists.
         record = self.record_cls.pid.resolve(id_)
 
-        # Create new draft
-        draft = self.draft_cls.create(
-            {},
-            conceptpid=record.conceptpid,
-            # TODO: Need to check if below line is correct?
-            fork_version_id=record.revision_id,
-        )
+        # Check permissions
+        self.require_permission(identity, "can_new_version", record=record)
+
+        # Draft already exists? return it
+            # opt1:  we don't know the draft cls - but is more consistent
+        next_draft = record.parent.get_next_draft()
+            # opt2: We know the draft_cls
+        next_draft = self.draft_cls.parent.next_draft(record)  # TODO implement
+        if next_draft:
+            return self.result_item(
+                self, identity, next_draft, links_config=links_config)
+
+
+        # Draft does not exists
+        next_draft = self.draft_cls.create(record, is_latest=True)
+        # OR?
+        next_draft = self.draft_cls.parent.create_draft(record)
+        # create a new draft (new pid automatically created)
+        # parent set to parent of previous version
+        # fork is NULL
 
         # Run components
         for component in self.components:
             if hasattr(component, 'new_version'):
-                component.new_version(identity, draft=draft, record=record)
+                component.new_version(
+                    identity, draft=next_draft, record=record)
 
-        draft.commit()
+        next_draft.commit()
         db.session.commit()
-        self.indexer.index(draft)
+        self.indexer.index(next_draft)
+
+        # Reindex the latest draft - the latest published record, may have a
+        # draft because it's being edited. We need to redindex it, to update
+        # the is_latest property.
+        latest_draft = self.draft_cls.parent.latest_draft(record)
+        if latest_draft:
+            self.indexer.index(latest_draft)
 
         return self.result_item(
-            self, identity, draft, links_config=links_config)
+            self, identity, next_draft, links_config=links_config)
 
     def delete_draft(self, id_, identity, revision_id=None):
         """Delete a record from database and search indexes."""
@@ -306,12 +338,23 @@ class RecordDraftService(RecordService):
                 component.delete_draft(
                     identity, draft=draft, record=record, force=force)
 
+        # Note, the parent record deletion logic is implemented in the
+        # ParentField and will automatically take care of deleting the parent
+        # record in case this is the only draft that exists for the parent.
         draft.delete(force=force)
         db.session.commit()
+
         # We refresh the index because users are usually redirected to a
         # search result immediately after, and we don't want the users to see
         # their just deleted draft.
         self.indexer.delete(draft, refresh=True)
+
+        # Reindex the latest draft - the latest published record, may have a
+        # draft because it's being edited. We need to redindex it, to update
+        # the is_latest property.
+        latest_draft = self.draft_cls.parent.latest_draft(draft)
+        if latest_draft:
+            self.indexer.index(latest_draft, refresh=True)
 
         # Reindex the record to trigger update of computed values in the
         # available dumpers

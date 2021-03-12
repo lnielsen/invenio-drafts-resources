@@ -102,3 +102,20 @@ class Draft(Record):
     expires_at = ModelField()
 
     fork_version_id = ModelField()
+
+    def create_from(cls, record):
+        draft = cls.create(
+            {},
+            parent=record.parent,
+        )
+
+        draft.parent
+
+        # NOTE: Merge pid into the current db session if not already in the
+        # session.
+        cls.pid.session_merge(record)
+        record.parent.__class__.pid.session_merge(record.parent)
+
+        record.update_from(draft)
+
+        return record
